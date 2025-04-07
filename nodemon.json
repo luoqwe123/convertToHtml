@@ -1,0 +1,15 @@
+{
+    "restartable": "rs",
+    "verbose": true,
+    "watch": [
+     
+      "main.js"
+    ],
+    "ignore": [
+      "test/*.spec.ts"
+    ],
+    "delay": "1000",
+    
+    "ext": "js  yml json"
+  }
+  

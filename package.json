@@ -1,0 +1,23 @@
+{
+  "name": "convertToHtml",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev:server":"nodemon main.js"
+  },
+  "keywords": [],
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "mammoth": "^1.6.0",
+    "marked": "^5.1.2",
+    "multer": "1.4.5-lts.2",
+    "nodemon": "^3.1.9",
+    "pdf-parse": "^1.1.1"
+  },
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.7.0"
+}

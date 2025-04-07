@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doc to HTML Converter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        #convertButton {
+            padding: 10px 20px;
+            margin-top: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-right: 10px; /* 添加按钮间距 */
+        }
+        #convertButton:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Upload a Document</h1>
+    <input type="file" id="fileInput" name="document" accept=".md,.docx,.pdf" required>
+    <button type="button" id="convertButton">Convert</button>
+    <div id="result"></div>
+    <script>
+        let fileUrl = ''; // 存储后端返回的文件路径
+
+        // 获取按钮并绑定事件
+        const convertButton = document.getElementById('convertButton');
+        convertButton.addEventListener('click', async (event) => {
+            event.preventDefault(); // 阻止默认行为
+            event.stopPropagation(); // 阻止事件冒泡，可能导致意外刷新
+            console.log(111); // 调试日志
+
+            const fileInput = document.getElementById('fileInput');
+            if (!fileInput.files.length) {
+                alert('Please select a file!');
+                return; // 确保在没有文件时返回
+            }
+
+            const formData = new FormData();
+            formData.append('document', fileInput.files[0]);
+
+            try {
+                const response = await fetch('http://localhost:3000/convert', {
+                    method: 'POST',
+                    body: formData,
+                    cache: 'no-store' // 避免缓存导致的意外行为
+                });
+                if (!response.ok) throw new Error('Conversion failed');
+
+                const data = await response.json(); // 期望 JSON 响应
+                fileUrl = data.fileUrl; // 获取文件路径
+
+                // 显示预览和下载按钮
+                document.getElementById('result').innerHTML = `
+                    <button type="button" onclick="previewHtml()">Preview</button>
+                    <button type="button" onclick="downloadHtml()">Download</button>
+                    <div id="previewArea"></div>
+                `;
+            } catch (error) {
+                document.getElementById('result').innerHTML = `Error: ${error.message}`;
+            }
+        });
+
+        // 预览功能：加载文件内容
+        async function previewHtml() {
+            try {
+                const response = await fetch(fileUrl, { cache: 'no-store' });
+                const htmlContent = await response.text();
+                document.getElementById('previewArea').innerHTML = htmlContent;
+            } catch (error) {
+                document.getElementById('previewArea').innerHTML = `Preview Error: ${error.message}`;
+            }
+        }
+
+        // 下载功能：直接链接到文件
+        function downloadHtml() {
+            const a = document.createElement('a');
+            a.href = fileUrl;
+            a.download = 'converted.html'; // 指定下载文件名
+            document.body.appendChild(a); // 添加到 DOM
+            a.click();
+            document.body.removeChild(a); // 清理 DOM
+        }
+
+        // 全局阻止意外的表单提交或刷新（可选）
+        window.addEventListener('beforeunload', (event) => {
+            // 仅在需要时启用此功能，调试时可注释掉
+            event.preventDefault();
+            event.returnValue = '';
+        });
+    </script>
+</body>
+</html>
