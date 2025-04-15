@@ -1,0 +1,203 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    max-width: 1000px;
+    width: 100%;
+    gap: 20px;
+}
+.container .resultMain{
+    display: flex;
+    
+    width: 100%;
+    gap: 20px;
+}
+.result {
+    width: 68%;
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    
+}
+
+.question {
+    font-size: 18px;
+    margin-bottom: 20px;
+    position: relative;
+
+}
+
+.options label {
+    display: block;
+    margin: 10px 0;
+    padding: 10px;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.options input[type="radio"],
+.options input[type="checkbox"] {
+    display: none;
+    /* 隐藏原始选择框 */
+}
+
+.options span {
+    display: block;
+    font-size: 16px;
+}
+
+.options label:hover {
+    background-color: #f0f0f0;
+}
+
+.correct {
+    color: #28a745;
+    font-weight: bold;
+    border-color: #28a745;
+    background-color: #e6f4ea;
+}
+
+.incorrect {
+    color: #dc3545;
+    font-weight: bold;
+    border-color: #dc3545;
+    background-color: #f8d7da;
+}
+
+.active {
+    color: #4a90e2;
+    /* 复选框激活时的颜色 */
+    border-color: #4a90e2;
+    background-color: #e7f0fa;
+}
+
+.submit-btn {
+    background-color: #4a90e2;
+    color: #fff;
+    display: flex;
+    border: none;
+    justify-content: center;
+    align-items: center;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 10px;
+    width: 60px;
+    height: 36px;
+    position: absolute;
+    bottom: -10px;
+    right: 0px;
+}
+
+.submit-btn:hover {
+    background-color: #357abd;
+}
+
+.sidebar {
+    flex: 1.2;
+    background-color: #fff;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    overflow-y: scroll;
+}
+
+.sidebar h3 {
+    font-size: 16px;
+    margin-bottom: 10px;
+}
+
+.question-list {
+    list-style: none;
+}
+
+.question-list li {
+    display: inline-block;
+    width: 30px;
+    height: 30px;
+    line-height: 30px;
+    text-align: center;
+    border: 1px solid #ccc;
+    border-radius: 50%;
+    margin: 5px;
+    cursor: pointer;
+}
+
+.question-list li.correct {
+    background-color: #28a745;
+    color: #fff;
+    border-color: #28a745;
+}
+
+.question-list li.incorrect {
+    background-color: #dc3545;
+    color: #fff;
+    border-color: #dc3545;
+}
+
+.question-list li.active {
+    background-color: #4a90e2;
+
+    border-color: #4a90e2;
+    color: #fff;
+}
+
+.question-list li:hover {
+    background-color: #e0e0e0;
+}
+
+
+.floor {
+display: flex;
+justify-content: center;
+gap: 10px;
+background-color: #fff;
+padding: 15px;
+border-radius: 8px;
+box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+width: 68%;
+max-width: 1000px;
+}
+
+.floor button {
+background-color: #4a90e2;
+color: #fff;
+padding: 10px 20px;
+border: none;
+border-radius: 4px;
+font-size: 14px;
+cursor: pointer;
+transition: background-color 0.2s;
+}
+
+.floor button:hover {
+background-color: #357abd;
+}
+
+.floor button:nth-child(1) {
+background-color: #dc3545; /* 清空按钮用红色，与 .incorrect 一致 */
+}
+
+.floor button:nth-child(1):hover {
+background-color: #c82333;
+}
+
+.floor button:disabled {
+background-color: #cccccc;
+cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+.floor {
+justify-content: center;
+flex-wrap: wrap;
+}
+.floor button {
+padding: 8px 16px;
+font-size: 13px;
+}
+}

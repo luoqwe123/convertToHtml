@@ -1,149 +1,241 @@
-// index.js
-const fs = require('fs').promises; // 使用 Promise 版本的 fs
-const path = require('path');
-const marked = require('marked');
-const mammoth = require('mammoth');
-const pdf = require('pdf-parse');
+// 判题与渲染题
 
+// 题目导航数据
+const questionMap = [];
+let questionIndex = 0;
+let currentQuestionIndex = 0
 
-// 支持的文件类型
-const supportedExtensions = ['md', 'docx', 'pdf'];
-
-// CSS 样式，确保手机和电脑兼容
-const cssStyles = `
-  <style>
-    body { max-width: 800px; margin: 0 auto; padding: 10px; font-family: Arial, sans-serif; }
-    .question { font-size: 1.2em; margin: 20px 0; color: #333; }
-    .option { margin: 10px 0; }
-    input[type="radio"] { margin-right: 5px; }
-    button { padding: 8px 16px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
-    button:hover { background-color: #0056b3; }
-    @media (max-width: 600px) { 
-      body { padding: 5px; font-size: 0.9em; }
-      button { padding: 6px 12px; }
+// 构建题目导航
+function buildErrQustion(currentQuestionIndex, question) {
+    let el = document.querySelector(`li[data-global-index='${currentQuestionIndex}']`)
+      console.log("li",el,currentQuestionIndex,question.answer,question.userAnswer,question.chooseRight)
+    
+    if (question.chooseRight === false) {
+        el.classList.add('incorrect');
+        if (el.classList.contains('correct')) el.classList.remove("correct")
+    } else if (question.chooseRight === true) {
+        el.classList.add("correct")
+        if (el.classList.contains('incorrect')) el.classList.remove("incorrect")
     }
-  </style>
-`;
 
-// 判题脚本（简单示例，答案固定为 B）
-const jsScript = `
-  <script>
-    function checkAnswer(questionId, correctAnswer) {
-      const selected = document.querySelector('input[name="' + questionId + '"]:checked');
-      if (!selected) {
-        alert("Please select an answer!");
-        return;
-      }
-      const userAnswer = selected.value.split(')')[0];
-      alert(userAnswer === correctAnswer ? "Correct!" : "Wrong! Correct answer is " + correctAnswer);
+}
+function buildQuestionList(data) {
+    const questionList = document.querySelector('.question-list');
+    questionList.innerHTML = '';
+    let frist = true
+    let historyIndex = 0
+
+    Object.keys(data).forEach(chapter => {
+        let value = data[chapter]
+        const chapterDiv = document.createElement('div');
+        chapterDiv.innerHTML = `<h3>${chapter}</h3>`;
+        questionList.appendChild(chapterDiv);
+        
+        // 单选
+        Object.keys(value).forEach(item => {
+            if (data[chapter][item].length > 0) {
+                let selectTypeDiv = document.createElement('div');
+                selectTypeDiv.innerHTML = `<h5>${item}</h5>`;
+                chapterDiv.appendChild(selectTypeDiv);
+                const singleChoiceUl = document.createElement('ul');
+                data[chapter][item].forEach((q, idx) => {
+                   
+                    const li = document.createElement('li');
+                    li.textContent = `${idx + 1}`;
+                    li.dataset.chapter = chapter;
+                    li.dataset.type = item;
+                    li.dataset.index = idx;
+                    li.dataset.globalIndex = questionIndex;
+                    // console.log(questionIndex)
+                    if (frist){ 
+                        li.classList.add('active');
+                        frist = false
+                    }
+                    singleChoiceUl.appendChild(li);
+                    // buildErrQustion(questionIndex, q)
+                    questionMap.push({ chapter, type: item, index: idx, globalIndex: questionIndex });
+                    questionIndex++;
+                });
+                chapterDiv.appendChild(singleChoiceUl);
+                //  导航元素挂载之后进行历史正误的样式变化
+               
+                data[chapter][item].forEach((q, idx) => {
+                    // console.log(q)
+                    if(q.userAnswer) buildErrQustion(historyIndex, q)
+                    historyIndex++
+                });
+            }
+
+        })
+    });
+
+    // 点击切换题目
+    questionList.addEventListener('click', (e) => {
+        const li = e.target.closest('li');
+        if (!li) return;
+        const globalIndex = parseInt(li.dataset.globalIndex);
+        currentQuestionIndex = globalIndex
+        renderQuestion(data,globalIndex);
+        document.querySelectorAll('.question-list li').forEach(item => item.classList.remove('active'));
+        li.classList.add('active');
+    });
+}
+
+// 渲染题目
+function renderQuestion(data,globalIndex) {
+    // console.log(questionMap)
+    const { chapter, type, index } = questionMap[globalIndex];
+    const question = data[chapter][type][index];
+    const resultDiv = document.querySelector('.result');
+    resultDiv.innerHTML = '';
+
+    // 题目
+    const questionDiv = document.createElement('div');
+    questionDiv.className = 'question';
+    questionDiv.textContent = question.question;
+    resultDiv.appendChild(questionDiv);
+
+    // 选项
+    const optionsDiv = document.createElement('div');
+    optionsDiv.className = 'options';
+    const options = Object.entries(question.select);
+    // console.log(options)
+    const name = `question-${globalIndex}`;
+
+    if (type != '不定项') {
+        let hasAnswered = false; // 标记是否已选择
+
+        options.forEach(([key, value]) => {
+            const label = document.createElement('label');
+            const input = document.createElement('input');
+            input.type = 'radio';
+            input.name = name;
+            input.value = key;
+
+            input.addEventListener('change', () => {
+                if (!hasAnswered) {
+                    let chooseRight = checkSingleChoice(input.value, question.answer, optionsDiv);
+                    question.chooseRight = chooseRight
+                    question.userAnswer = input.value
+                    buildErrQustion(currentQuestionIndex, question)
+                    hasAnswered = true; // 锁定判断
+                }
+            });
+
+            label.appendChild(input);
+            label.appendChild(document.createTextNode(`${key}. ${value}`));
+            optionsDiv.appendChild(label);
+        });
+        // 选择之前检查历史
+        if (question.userAnswer) {
+            checkSingleChoice(question.userAnswer, question.answer, optionsDiv);
+            hasAnswered = true;
+        }
+    } else {
+        // 跟踪复选框选择状态
+        let selectedAnswers = [];
+
+        options.forEach(([key, value]) => {
+            const label = document.createElement('label');
+            const input = document.createElement('input');
+            input.type = 'checkbox';
+            input.value = key;
+
+            input.addEventListener('change', () => {
+                // 切换激活状态
+
+                if (input.checked) {
+                    label.classList.add('active');
+                    if (!selectedAnswers.includes(key)) {
+                        selectedAnswers.push(key);
+                    }
+                } else {
+                    label.classList.remove('active');
+                    selectedAnswers = selectedAnswers.filter(ans => ans !== key);
+                }
+            });
+            label.appendChild(input);
+            label.appendChild(document.createTextNode(`${key}. ${value}`));
+            optionsDiv.appendChild(label);
+        });
+        if (question.userAnswer) {
+            checkMultiChoice(optionsDiv, question.answer, question.userAnswer);
+        }
+        // 提交按钮
+        const submitBtn = document.createElement('button');
+        submitBtn.className = 'submit-btn';
+        submitBtn.textContent = '提交';
+        submitBtn.addEventListener('click', () => {
+            const sortedSelected = selectedAnswers.sort().join('');
+            let chooseRight = checkMultiChoice(optionsDiv, question.answer, sortedSelected)
+            question.chooseRight = chooseRight
+            question.userAnswer = sortedSelected
+            buildErrQustion(currentQuestionIndex, question)
+
+        });
+        questionDiv.appendChild(submitBtn);
     }
-  </script>
-`;
 
-// 解析 Markdown 文件
-async function parseMarkdown(filePath) {
-  const content = await fs.readFile(filePath, 'utf-8');
-  let html = marked.parse(content);
-  // console.log("md",html)
-  // 规范化题目和选项
-  html = html.replace(/<h[1-6]>(.*?)<\/h[1-6]>/g, '<h1 class="question">$1</h1>')
-             .replace(/<li>([A-D]\).*?)<\/li>/g, (match, p1) => `<li class="option"><input type="radio" name="q1" value="${p1}">${p1}</li>`);
-  return html;
+    resultDiv.appendChild(optionsDiv);
 }
 
-// 解析 Docx 文件
-async function parseDocx(filePath) {
-  const result = await mammoth.convertToHtml({ path: filePath });
-  let html = result.value;
-  // 规范化题目和选项
-  html = html.replace(/<h[1-6]>(.*?)<\/h[1-6]>/g, '<h1 class="question">$1</h1>')
-             .replace(/<p>([A-D]\).*?)<\/p>/g, (match, p1) => `<p class="option"><input type="radio" name="q1" value="${p1}">${p1}</p>`);
-  return html;
-}
+// 单选题检查
+function checkSingleChoice(value, correctAnswer, optionsDiv) {
 
-// 解析 PDF 文件
-async function parsePdf(filePath) {
-  const buffer = await fs.readFile(filePath);
-  const data = await pdf(buffer);
-  const lines = data.text.split('\n');
-  let html = '';
-  let questionCount = 0;
-  lines.forEach(line => {
-    line = line.trim();
-    if (line.match(/^Question \d+/i) || line.match(/^\d+\./)) {
-      questionCount++;
-      html += `<h1 class="question">${line}</h1>`;
-    } else if (line.match(/^[A-D]\)/)) {
-      html += `<p class="option"><input type="radio" name="q${questionCount}" value="${line}">${line}</p>`;
-    } else if (line) {
-      html += `<p>${line}</p>`;
+    const selected = value;
+    const labels = optionsDiv.querySelectorAll('label');
+
+    let res = false
+    labels.forEach(label => {
+
+        const input = label.querySelector('input');
+        const key = input.value;
+        label.className = '';
+
+        if (key === correctAnswer) {
+            label.className = 'correct';
+
+        } else if (key === selected && selected !== correctAnswer) {
+            label.className = 'incorrect';
+
+        }
+    });
+    if (correctAnswer == selected) {
+        res = true
     }
-  });
-  return html;
+    return res
 }
 
-// 主转换函数
-async function convertToHtml(filePath) {
-  const ext = path.extname(filePath).slice(1).toLowerCase();
-  if (!supportedExtensions.includes(ext)) {
-    throw new Error(`Unsupported file type: ${ext}`);
-  }
+// 不定项检查
+function checkMultiChoice(optionsDiv, correctAnswer, sortedSelected) {
 
-  let htmlContent;
-  switch (ext) {
-    case 'md':
-      htmlContent = await parseMarkdown(filePath);
-      break;
-    case 'docx':
-      htmlContent = await parseDocx(filePath);
-      break;
-    case 'pdf':
-      htmlContent = await parsePdf(filePath);
-      break;
-  }
+    const labels = optionsDiv.querySelectorAll('label');
+    let res = false
+    labels.forEach(label => {
+        const input = label.querySelector('input');
+        const key = input.value;
 
-  // 添加交互按钮（每题一个按钮，假设答案为 B）
-  htmlContent = htmlContent.replace(/(<h1 class="question">.*?<\/h1>)/g, (match, p1) => {
-    const questionId = `q${Math.random().toString(36).substr(2, 9)}`; // 随机 ID
-    return `${p1}<button onclick="checkAnswer('${questionId}', 'B')">Submit</button>`;
-  });
+        label.className = ''; // 重置样式
 
-  // 组装完整 HTML
-  const fullHtml = `
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Questions</title>
-      ${cssStyles}
-    </head>
-    <body>
-      ${htmlContent}
-      ${jsScript}
-    </body>
-    </html>
-  `;
+        if (correctAnswer.includes(key)) {
+            label.className = 'correct';
+        } else if (sortedSelected.includes(key) && !correctAnswer.includes(key)) {
+            label.className = 'incorrect';
 
-  return fullHtml;
+        } else if (label.classList.contains('active')) {
+            label.className = 'active'; // 保留激活样式
+        }
+    });
+    if (sortedSelected === correctAnswer) res = true
+    return res
 }
 
-// 主函数
-async function main() {
-  const inputFile = process.argv[2]; // 命令行参数传入文件路径
-  if (!inputFile) {
-    console.error("Please provide a file path. Usage: node index.js <file>");
-    return;
-  }
-
-  try {
-    const html = await convertToHtml(inputFile);
-    const outputFile = 'output.html';
-    await fs.writeFile(outputFile, html);
-    console.log(`Conversion successful! Output saved to ${outputFile}`);
-  } catch (error) {
-    console.error("Error:", error.message);
-  }
+// 初始化
+function showResult(data){
+   
+    
+    // console.log(data)
+    buildQuestionList(data);
+    renderQuestion(data,0);
+    
 }
-
-main();

@@ -1,103 +1,203 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Doc to HTML Converter</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        #convertButton {
-            padding: 10px 20px;
-            margin-top: 10px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            cursor: pointer;
-            margin-right: 10px; /* 添加按钮间距 */
-        }
-        #convertButton:hover {
-            background-color: #0056b3;
-        }
-    </style>
+    <link rel="stylesheet" href="./index.css">
+    <link rel="stylesheet" href="./result.css">
 </head>
+
 <body>
-    <h1>Upload a Document</h1>
-    <input type="file" id="fileInput" name="document" accept=".md,.docx,.pdf" required>
-    <button type="button" id="convertButton">Convert</button>
-    <div id="result"></div>
-    <script>
-        let fileUrl = ''; // 存储后端返回的文件路径
+    <div class="app">
+        <div class="main">
+            <div class="box">
+                <h1>Upload a Document</h1>
+                <input type="file" id="fileInput" accept=".md" required>
+                <button type="button" id="convertButton">Convert</button>
+            </div>
+        </div>
+        <div class="container">
+            <div class="resultMain">
+                <div class="result"></div>
+                <div class="sidebar">
+                    <h3>题目导航</h3>
+                    <ul class="question-list"></ul>
+                </div>
+            </div>
+            <div class="floor">
+                <button type="button" class="resetButton">清空历史记录</button>
+                <button type="button" class="saveButton">保存做题记录</button>
+            </div>
+        </div>
+    </div>
 
-        // 获取按钮并绑定事件
-        const convertButton = document.getElementById('convertButton');
-        convertButton.addEventListener('click', async (event) => {
-            event.preventDefault(); // 阻止默认行为
-            event.stopPropagation(); // 阻止事件冒泡，可能导致意外刷新
-            console.log(111); // 调试日志
+    <!-- CDN 引入解析库 -->
+    <script src="./node_modules/mammoth/mammoth.browser.js"></script>
+    <script src="./indexDB.js"></script>
+    <script type="module">
+        import { marked } from './node_modules/marked/lib/marked.esm.js';
+        import { parseQuestionsToJson } from "./main.js"
+        const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
+        let data = {}
+        // 页面加载时检查 IndexedDB
+        document.addEventListener('DOMContentLoaded', async () => {
+
+            data = await getJsonData();
+            // console.log(jsonData)
+            if (Object.keys(data).length != 0) {
+                showResult(data);
+            }
+
+        });
+
+        // 转换按钮事件
+        document.getElementById('convertButton').addEventListener('click', async () => {
             const fileInput = document.getElementById('fileInput');
-            if (!fileInput.files.length) {
-                alert('Please select a file!');
-                return; // 确保在没有文件时返回
+            const file = fileInput.files[0];
+
+            if (!file) {
+                console.log('Please select a file.');
+                return;
             }
 
-            const formData = new FormData();
-            formData.append('document', fileInput.files[0]);
+            if (file.size > MAX_FILE_SIZE) {
+                console.log('File size exceeds 5MB.');
+                return;
+            }
 
             try {
-                const response = await fetch('http://localhost:3000/convert', {
-                    method: 'POST',
-                    body: formData,
-                    cache: 'no-store' // 避免缓存导致的意外行为
-                });
-                if (!response.ok) throw new Error('Conversion failed');
-
-                const data = await response.json(); // 期望 JSON 响应
-                fileUrl = data.fileUrl; // 获取文件路径
-
-                // 显示预览和下载按钮
-                document.getElementById('result').innerHTML = `
-                    <button type="button" onclick="previewHtml()">Preview</button>
-                    <button type="button" onclick="downloadHtml()">Download</button>
-                    <div id="previewArea"></div>
-                `;
-            } catch (error) {
-                document.getElementById('result').innerHTML = `Error: ${error.message}`;
+                data = await parseFile(file);
+                console.log(data)
+                data = JSON.parse(data)
+                await saveJsonData(data);
+                showResult(data);
+            } catch (e) {
+                console.log(`Failed to convert file: ${e.message}`);
             }
         });
 
-        // 预览功能：加载文件内容
-        async function previewHtml() {
+        // 保存更改
+        document.querySelector('.saveButton').addEventListener('click', async () => {
+
             try {
-                const response = await fetch(fileUrl, { cache: 'no-store' });
-                const htmlContent = await response.text();
-                document.getElementById('previewArea').innerHTML = htmlContent;
-            } catch (error) {
-                document.getElementById('previewArea').innerHTML = `Preview Error: ${error.message}`;
+
+                await saveJsonData(data);
+                console.log('Changes saved successfully.');
+            } catch (e) {
+                console.log('Invalid JSON format.');
+            }
+        });
+
+        // 添加备注
+        // document.getElementById('addNoteButton').addEventListener('click', () => {
+        //     const textarea = document.getElementById('jsonData');
+        //     try {
+        //         const json = JSON.parse(textarea.value);
+        //         json.push({ type: 'note', content: 'User added note at ' + new Date().toLocaleString() });
+        //         textarea.value = JSON.stringify(json, null, 2);
+        //         showMessage('Note added.');
+        //     } catch (e) {
+        //         showError('Failed to add note.');
+        //     }
+        // });
+
+        // 重置数据
+        document.querySelector('.resetButton').addEventListener('click', async () => {
+            // console.log(data)
+            Object.keys(data).forEach(chapter => {
+                let value = data[chapter]
+                Object.keys(value).forEach(item => {
+                    if (data[chapter][item].length > 0) {
+                       
+                        data[chapter][item].forEach((q, idx) => {
+                            if(q.userAnswer){
+                                q.userAnswer = ""
+                                q.chooseRight = undefined
+                                
+                            }
+                           
+                        })
+                        
+                    }
+
+                })
+            });
+            await saveJsonData(data)
+            // console.log(data)
+            // try {
+            //     await deleteJsonData();
+            //     document.getElementById('result').style.display = 'none';
+            //     document.getElementById('fileInput').value = '';
+            //     showMessage('Data reset. Please upload a new file.');
+            // } catch (e) {
+            //     showError('Failed to reset data: ' + e.message);
+            // }
+        });
+
+        // 解析文件
+        async function parseFile(file) {
+
+            const extension = file.name.split('.').pop().toLowerCase();
+            const arrayBuffer = await file.arrayBuffer();
+
+            if (extension === 'md') {
+                const text = new TextDecoder().decode(arrayBuffer);
+
+                return parseMarkdown(text);
+            } else if (extension === 'docx' || extension === 'doc') {
+                const result = await mammoth.extractRawText({ arrayBuffer });
+                console.log(result.value)
+                return parseDocx(result.value);
+            } else {
+                throw new Error('Unsupported file format.');
             }
         }
 
-        // 下载功能：直接链接到文件
-        function downloadHtml() {
-            const a = document.createElement('a');
-            a.href = fileUrl;
-            a.download = 'converted.html'; // 指定下载文件名
-            document.body.appendChild(a); // 添加到 DOM
-            a.click();
-            document.body.removeChild(a); // 清理 DOM
+        // 解析 Markdown
+        function parseMarkdown(text) {
+            return parseQuestionsToJson(text)
+
         }
 
-        // 全局阻止意外的表单提交或刷新（可选）
-        window.addEventListener('beforeunload', (event) => {
-            // 仅在需要时启用此功能，调试时可注释掉
-            event.preventDefault();
-            event.returnValue = '';
-        });
+        // 解析 Docx
+        function parseDocx(text) {
+            return text
+                .split('\n')
+                .filter(line => line.trim())
+                .map(line => ({
+                    type: 'paragraph',
+                    content: line.trim()
+                }));
+        }
+
+        // 显示结果
+        // function showResult(json) {
+        //     const resultDiv = document.getElementById('result');
+        //     const textarea = document.getElementById('jsonData');
+        //     console.log(JSON.parse(json))
+        //     textarea.value = JSON.parse(json);
+        //     resultDiv.style.display = 'block';
+        //     console.log('File converted successfully.');
+        // }
+
+        // // 显示错误
+        // function showError(message) {
+        //     const messageP = document.getElementById('resultMessage');
+        //     messageP.textContent = message;
+        //     messageP.className = 'error';
+        // }
+
+        // // 显示消息
+        // function showMessage(message) {
+        //     const messageP = document.getElementById('resultMessage');
+        //     messageP.textContent = message;
+        //     messageP.className = '';
+        // }
     </script>
+    <script src="./index.js"></script>
 </body>
+
 </html>

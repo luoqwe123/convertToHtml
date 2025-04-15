@@ -1,132 +1,103 @@
 
-
-// server.js (更新)
-const express = require('express');
-const multer = require('multer');
-const path = require('path');
-const marked = require('marked');
-const mammoth = require('mammoth');
-const pdf = require('pdf-parse');
-const fs = require('fs').promises;
-const cors = require('cors');
-
-const app = express();
-const port = 3000;
-const outputFile = path.join(__dirname, 'public', 'output.html');
-// 配置 Multer
-const upload = multer({ dest: 'uploads/' });
-app.use(express.static('public'));
-app.use(cors());
-// CSS 和 JS（与之前一致）
-const cssStyles = `
-  <style>
-    body { max-width: 800px; margin: 0 auto; padding: 10px; font-family: Arial, sans-serif; }
-    .question { font-size: 1.2em; margin: 20px 0; color: #333; }
-    .option { margin: 10px 0; }
-    input[type="radio"] { margin-right: 5px; }
-    button { padding: 8px 16px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
-    button:hover { background-color: #0056b3; }
-    @media (max-width: 600px) { body { padding: 5px; font-size: 0.9em; } button { padding: 6px 12px; } }
-  </style>
-`;
-const jsScript = `
-  <script>
-    function checkAnswer(questionId, correctAnswer) {
-      const selected = document.querySelector('input[name="' + questionId + '"]:checked');
-      if (!selected) { alert("Please select an answer!"); return; }
-      const userAnswer = selected.value.split(')')[0];
-      alert(userAnswer === correctAnswer ? "Correct!" : "Wrong! Correct answer is " + correctAnswer);
-    }
-  </script>
-`;
-
 // 解析函数
-async function parseMarkdown(filePath) {
-  const content = await fs.readFile(filePath, 'utf-8');
-  let html = marked.parse(content);
-  html = html.replace(/<h[1-6]>(.*?)<\/h[1-6]>/g, '<h1 class="question">$1</h1>')
-             .replace(/<li>([A-D]\).*?)<\/li>/g, (match, p1) => `<li class="option"><input type="radio" name="q1" value="${p1}">${p1}</li>`);
-  return html;
-}
+export function parseQuestionsToJson(input) {
+    // 清理输入，去除多余空行和空格
+    const lines = input.trim().split('\n').map(line => line.trim()).filter(line => line);
 
-async function parseDocx(filePath) {
-  const result = await mammoth.convertToHtml({ path: filePath });
-  let html = result.value;
-  html = html.replace(/<h[1-6]>(.*?)<\/h[1-6]>/g, '<h1 class="question">$1</h1>')
-             .replace(/<p>([A-D]\).*?)<\/p>/g, (match, p1) => `<p class="option"><input type="radio" name="q1" value="${p1}">${p1}</p>`);
-  return html;
-}
+    // 初始化结果
+    const result = {}
 
-async function parsePdf(filePath) {
-  const buffer = await fs.readFile(filePath);
-  const data = await pdf(buffer);
-  const lines = data.text.split('\n');
-  let html = '';
-  let questionCount = 0;
-  lines.forEach(line => {
-    line = line.trim();
-    if (line.match(/^Question \d+/i) || line.match(/^\d+\./)) {
-      questionCount++;
-      html += `<h1 class="question">${line}</h1>`;
-    } else if (line.match(/^[A-D]\)/)) {
-      html += `<p class="option"><input type="radio" name="q${questionCount}" value="${line}">${line}</p>`;
-    } else if (line) {
-      html += `<p>${line}</p>`;
+    // 状态标记：当前解析的题目类型
+    let currentType = null;
+    let currentQuestion = null;
+    let currentOptions = '';
+    let questionNumber = 0;
+
+    // 单选题答案（根据题目逻辑）
+    const singleChoiceAnswers = {
+        "1": "A", // 狭义的马克思主义
+        "2": "D"  // 客观条件
+    };
+
+    // 不定项选择题答案
+    const multiChoiceAnswers = {
+        "1": "ABCD", // 广义马克思主义
+        "2": "ABD"   // 理论来源
+    };
+    let title;
+    let titleReg = /\*\*([^\*]+)\*\*\s*\*\*([^\*]+)\*\*/
+    for (let i = 0; i < lines.length; i++) {
+
+        const line = lines[i];
+
+        // 检测题目（以数字开头，如 "1、"）
+        if (/^\d+、/.test(line)) {
+            // 如果已有题目，保存上一题
+            
+            if (currentQuestion) {
+                addQuestion(result, title, currentType, questionNumber, currentQuestion, currentOptions, singleChoiceAnswers, multiChoiceAnswers)
+            }
+
+            // 新题目
+            questionNumber = line.match(/^\d+/)[0];
+            currentQuestion = line;
+            currentOptions = {};
+            continue;
+        }
+
+        // 检测选项（以 A．B．C．D． 开头）
+        if (/^[A-D]．/.test(line)) {
+            currentOptions += line
+            continue;
+        }
+        // 保存最后一题
+        if (currentQuestion) {
+            addQuestion(result, title, currentType, questionNumber, currentQuestion, currentOptions, singleChoiceAnswers, multiChoiceAnswers)
+            currentQuestion = null
+        }
+        // 从输入字符串中提取标题
+        if (titleReg.test(line)) {
+            const titleMatch = line.match(titleReg);
+            title = titleMatch ? titleMatch[1] + titleMatch[2] : '默认标题'; // 合并为 "导论"
+            result[title] = {
+                "单选": [],
+                "不定项": []
+            }
+            continue;
+        }
+        // console.log("line", line[0], line, line.includes('单项选择题'))
+        // 检测题目类型
+        if (line.includes('单项选择题')) {
+            currentType = '单选';
+
+        } else if (line.includes('多项选选题')) {
+            currentType = '不定项';
+
+        }
     }
-  });
-  return html;
-}
 
-// 转换路由
-app.post('/convert', upload.single('document'), async (req, res) => {
-    console.log(req.body)
-  const filePath = req.file.path;
-  const ext = path.extname(req.file.originalname).slice(1).toLowerCase();
-
-  try {
-    let htmlContent;
-    switch (ext) {
-      case 'md': htmlContent = await parseMarkdown(filePath); break;
-      case 'docx': htmlContent = await parseDocx(filePath); break;
-      case 'pdf': htmlContent = await parsePdf(filePath); break;
-      default: throw new Error('Unsupported file type');
+    if (currentQuestion) {
+        addQuestion(result, title, currentType, questionNumber, currentQuestion, currentOptions, singleChoiceAnswers, multiChoiceAnswers)
+        currentQuestion = null
     }
 
-    htmlContent = htmlContent.replace(/(<h1 class="question">.*?<\/h1>)/g, (match, p1) => {
-      const questionId = `q${Math.random().toString(36).substr(2, 9)}`;
-      return `${p1}<button onclick="checkAnswer('${questionId}', 'B')">Submit</button>`;
+    return JSON.stringify(result, null, 2);
+}
+
+
+function addQuestion(result, title, currentType, questionNumber, currentQuestion, currentOptions, singleChoiceAnswers, multiChoiceAnswers) {
+    let str = currentOptions.replaceAll(/(?=[A-D].)/g,',')
+    let select = str.split(',')
+    let obj = {}
+    for(let i = 1;i<select.length;i++){
+        obj[select[i][0]] = select[i].trim().slice(2)
+    }
+    result[title][currentType].push({
+        question: currentQuestion,
+        select: obj,
+        answer: currentType === '单选' ? singleChoiceAnswers[questionNumber] : multiChoiceAnswers[questionNumber],
+        type: currentType
     });
+}
 
-    const fullHtml = `
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Converted Questions</title>
-        ${cssStyles}
-      </head>
-      <body>
-        ${htmlContent}
-       
-        ${jsScript}
-       
-      </body>
-      </html>
-    `;
 
-    await fs.unlink(filePath); // 删除临时文件
-    await fs.mkdir(path.dirname(outputFile), { recursive: true });
-    console.log()
-    await fs.writeFile(outputFile, fullHtml);
-    res.json({
-        fileUrl: `public/output.html`
-      });
-  } catch (error) {
-    res.status(500).send('Error: ' + error.message);
-  }
-});
-
-app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
-});
