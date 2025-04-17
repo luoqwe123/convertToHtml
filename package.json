@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev:server":"nodemon main.js"
+    "dev:server": "nodemon main.js"
   },
   "keywords": [],
   "dependencies": {
@@ -22,3 +22,4 @@
   "license": "ISC",
   "packageManager": "pnpm@10.7.0"
 }
+

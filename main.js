@@ -1,8 +1,11 @@
 
 // 解析函数
 export function parseQuestionsToJson(input) {
+   
+    let strArr = input.split(/\n*答案：\n*/)
+   
     // 清理输入，去除多余空行和空格
-    const lines = input.trim().split('\n').map(line => line.trim()).filter(line => line);
+    const lines = strArr[0].trim().split('\n').map(line => line.trim()).filter(line => line);
 
     // 初始化结果
     const result = {}
@@ -11,19 +14,7 @@ export function parseQuestionsToJson(input) {
     let currentType = null;
     let currentQuestion = null;
     let currentOptions = '';
-    let questionNumber = 0;
 
-    // 单选题答案（根据题目逻辑）
-    const singleChoiceAnswers = {
-        "1": "A", // 狭义的马克思主义
-        "2": "D"  // 客观条件
-    };
-
-    // 不定项选择题答案
-    const multiChoiceAnswers = {
-        "1": "ABCD", // 广义马克思主义
-        "2": "ABD"   // 理论来源
-    };
     let title;
     let titleReg = /\*\*([^\*]+)\*\*\s*\*\*([^\*]+)\*\*/
     for (let i = 0; i < lines.length; i++) {
@@ -35,13 +26,13 @@ export function parseQuestionsToJson(input) {
             // 如果已有题目，保存上一题
             
             if (currentQuestion) {
-                addQuestion(result, title, currentType, questionNumber, currentQuestion, currentOptions, singleChoiceAnswers, multiChoiceAnswers)
+                addQuestion(result, title, currentType,  currentQuestion, currentOptions)
             }
 
             // 新题目
-            questionNumber = line.match(/^\d+/)[0];
+          
             currentQuestion = line;
-            currentOptions = {};
+            currentOptions = '';
             continue;
         }
 
@@ -52,7 +43,7 @@ export function parseQuestionsToJson(input) {
         }
         // 保存最后一题
         if (currentQuestion) {
-            addQuestion(result, title, currentType, questionNumber, currentQuestion, currentOptions, singleChoiceAnswers, multiChoiceAnswers)
+            addQuestion(result, title, currentType,  currentQuestion, currentOptions)
             currentQuestion = null
         }
         // 从输入字符串中提取标题
@@ -61,31 +52,33 @@ export function parseQuestionsToJson(input) {
             title = titleMatch ? titleMatch[1] + titleMatch[2] : '默认标题'; // 合并为 "导论"
             result[title] = {
                 "单选": [],
-                "不定项": []
+                "多选": []
             }
             continue;
         }
         // console.log("line", line[0], line, line.includes('单项选择题'))
         // 检测题目类型
-        if (line.includes('单项选择题')) {
+        if (/单.*选.*题/.test(line)) {
             currentType = '单选';
 
-        } else if (line.includes('多项选选题')) {
-            currentType = '不定项';
+        } else if (/多.*选.*题/.test(line)) {
+            // console.log(line)
+            currentType = '多选';
 
         }
     }
 
     if (currentQuestion) {
-        addQuestion(result, title, currentType, questionNumber, currentQuestion, currentOptions, singleChoiceAnswers, multiChoiceAnswers)
+        addQuestion(result, title, currentType,  currentQuestion, currentOptions)
         currentQuestion = null
     }
-
+    insertAnswer(strArr[1],result)
     return JSON.stringify(result, null, 2);
 }
 
 
-function addQuestion(result, title, currentType, questionNumber, currentQuestion, currentOptions, singleChoiceAnswers, multiChoiceAnswers) {
+function addQuestion(result, title, currentType, currentQuestion, currentOptions) {
+    // console.log(currentOptions)
     let str = currentOptions.replaceAll(/(?=[A-D].)/g,',')
     let select = str.split(',')
     let obj = {}
@@ -95,9 +88,62 @@ function addQuestion(result, title, currentType, questionNumber, currentQuestion
     result[title][currentType].push({
         question: currentQuestion,
         select: obj,
-        answer: currentType === '单选' ? singleChoiceAnswers[questionNumber] : multiChoiceAnswers[questionNumber],
         type: currentType
     });
 }
 
 
+function insertAnswer(str, result) {
+    // 结果
+    let res = {}
+    let answerType = ''
+    let questionNumber = 1 // 题号
+    let title = ''
+    // console.log(str)
+    const lines = str.trim().split("**").map(line => line.trim()).filter(line => line).filter(line => !(/^\d/.test(line)))
+    // const lines = str.trim().split('\n').map(line => line.trim()).filter(line => line);
+    // let titleReg = /\*\*([^\*]+)\*\*/
+
+    lines.forEach((item, index) => {
+        if (/(单选|多选)/.test(item)) {
+            questionNumber = 1 // 换题型重新计算题号
+            if (/(单选)/.test(item)) {
+                answerType = "单选"
+            }
+            if (/(多选)/.test(item)) {
+                answerType = "多选"
+            }
+        } else if (/[A-Z]+/.test(item)) {
+
+            let answerArr = item.split(/\s/)
+            answerArr.forEach((value, index) => {
+                res[title][answerType][questionNumber] = value
+                questionNumber++
+            })
+
+        } else {
+
+            title = item.replaceAll(/\s/g, "")
+
+            res[title] = {
+                "单选": {},
+                "多选": {}
+            }
+        }
+    })
+
+    for (const key1 in res) {
+        for (const key2 in result) {
+            if (key2.includes(key1)) {
+                for (const key3 in result[key2]) {
+                    for (const item of result[key2][key3]) {
+                        let qNumber = item.question.match(/^\d+/)[0]
+                        item.answer = res[key1][key3][qNumber]
+                    }
+                }
+                break
+            }
+        }
+    }
+    return JSON.stringify(result,null,2)
+}

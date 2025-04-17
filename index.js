@@ -1,15 +1,13 @@
 // 判题与渲染题
 
-// 题目导航数据
-const questionMap = [];
-let questionIndex = 0;
+
 let currentQuestionIndex = 0
 
 // 构建题目导航
 function buildErrQustion(currentQuestionIndex, question) {
     let el = document.querySelector(`li[data-global-index='${currentQuestionIndex}']`)
-      console.log("li",el,currentQuestionIndex,question.answer,question.userAnswer,question.chooseRight)
-    
+    //   console.log("li",el,currentQuestionIndex,question.answer,question.userAnswer,question.chooseRight)
+    // console.log(el)
     if (question.chooseRight === false) {
         el.classList.add('incorrect');
         if (el.classList.contains('correct')) el.classList.remove("correct")
@@ -19,7 +17,10 @@ function buildErrQustion(currentQuestionIndex, question) {
     }
 
 }
-function buildQuestionList(data) {
+function buildQuestionList(data,questionMap) {
+    // 题目导航数据
+    
+    let questionIndex = 0;
     const questionList = document.querySelector('.question-list');
     questionList.innerHTML = '';
     let frist = true
@@ -30,7 +31,7 @@ function buildQuestionList(data) {
         const chapterDiv = document.createElement('div');
         chapterDiv.innerHTML = `<h3>${chapter}</h3>`;
         questionList.appendChild(chapterDiv);
-        
+
         // 单选
         Object.keys(value).forEach(item => {
             if (data[chapter][item].length > 0) {
@@ -39,7 +40,7 @@ function buildQuestionList(data) {
                 chapterDiv.appendChild(selectTypeDiv);
                 const singleChoiceUl = document.createElement('ul');
                 data[chapter][item].forEach((q, idx) => {
-                   
+
                     const li = document.createElement('li');
                     li.textContent = `${idx + 1}`;
                     li.dataset.chapter = chapter;
@@ -47,7 +48,7 @@ function buildQuestionList(data) {
                     li.dataset.index = idx;
                     li.dataset.globalIndex = questionIndex;
                     // console.log(questionIndex)
-                    if (frist){ 
+                    if (frist) {
                         li.classList.add('active');
                         frist = false
                     }
@@ -58,10 +59,10 @@ function buildQuestionList(data) {
                 });
                 chapterDiv.appendChild(singleChoiceUl);
                 //  导航元素挂载之后进行历史正误的样式变化
-               
+                // console.log(questionIndex)
                 data[chapter][item].forEach((q, idx) => {
                     // console.log(q)
-                    if(q.userAnswer) buildErrQustion(historyIndex, q)
+                    if (q.userAnswer) buildErrQustion(historyIndex, q)
                     historyIndex++
                 });
             }
@@ -75,15 +76,15 @@ function buildQuestionList(data) {
         if (!li) return;
         const globalIndex = parseInt(li.dataset.globalIndex);
         currentQuestionIndex = globalIndex
-        renderQuestion(data,globalIndex);
+        renderQuestion(data, globalIndex,questionMap);
         document.querySelectorAll('.question-list li').forEach(item => item.classList.remove('active'));
         li.classList.add('active');
     });
 }
 
 // 渲染题目
-function renderQuestion(data,globalIndex) {
-    // console.log(questionMap)
+function renderQuestion(data, globalIndex,questionMap) {
+    
     const { chapter, type, index } = questionMap[globalIndex];
     const question = data[chapter][type][index];
     const resultDiv = document.querySelector('.result');
@@ -102,7 +103,7 @@ function renderQuestion(data,globalIndex) {
     // console.log(options)
     const name = `question-${globalIndex}`;
 
-    if (type != '不定项') {
+    if (type != '多选') {
         let hasAnswered = false; // 标记是否已选择
 
         options.forEach(([key, value]) => {
@@ -231,11 +232,11 @@ function checkMultiChoice(optionsDiv, correctAnswer, sortedSelected) {
 }
 
 // 初始化
-function showResult(data){
-   
-    
+function showResult(data) {
+
+    const questionMap = [];
     // console.log(data)
-    buildQuestionList(data);
-    renderQuestion(data,0);
-    
+    buildQuestionList(data,questionMap);
+    renderQuestion(data, 0,questionMap);
+
 }
