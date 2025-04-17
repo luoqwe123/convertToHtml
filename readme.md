@@ -20,28 +20,28 @@
   "导论":{
     "单选":[
       {
-	question:"1、狭义的马克思主义是指：（  ）",
-	select:
+	"question":"1、狭义的马克思主义是指：（  ）",
+	"select":
         {
         	"A":"马克思恩格斯创立的基本理论基本观点和学说的体系",
             "B": "列宁主义"
-        }
-    answer: "A",
-    type: "单选",
-    chooseRight: false
-    userAnswer: "C"
+        },
+    "answer": "A",
+    "type": "单选",
+    "chooseRight": false,
+    "userAnswer": "C"
       },
     ],
     "多选":{
       {
-    question:"1、狭义的马克思主义是指：（  ）",
-    select: 
+    "question":"1、狭义的马克思主义是指：（  ）",
+    "select": 
         {
             "A": "马克思恩格斯创立的基本理论基本观点和学说的体系",
             "B": "列宁主义"
-        }
-    answer: "AB",
-    type: "多选",
+        },
+    "answer": "AB",
+    "type": "多选",
 
       },
     }
