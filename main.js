@@ -6,7 +6,7 @@ export function parseQuestionsToJson(input) {
    
     // 清理输入，去除多余空行和空格
     const lines = strArr[0].trim().split('\n').map(line => line.trim()).filter(line => line);
-
+    console.log(strArr[0].trim())
     // 初始化结果
     const result = {}
 
@@ -100,6 +100,7 @@ function insertAnswer(str, result) {
     let questionNumber = 1 // 题号
     let title = ''
     // console.log(str)
+    
     const lines = str.trim().split("**").map(line => line.trim()).filter(line => line).filter(line => !(/^\d/.test(line)))
     // const lines = str.trim().split('\n').map(line => line.trim()).filter(line => line);
     // let titleReg = /\*\*([^\*]+)\*\*/

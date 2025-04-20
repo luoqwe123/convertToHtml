@@ -21,6 +21,7 @@
     flex-direction: column;
     justify-content: center;
     min-width: 600px;
+    height: 440px;
     
 }
 
@@ -106,6 +107,8 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     overflow-y: scroll;
     min-width: 300px;
+    height: 440px;
+    overflow-y: auto;
 }
 
 .sidebar h3 {

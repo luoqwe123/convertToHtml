@@ -47,7 +47,8 @@
 
             data = await getJsonData();
             // console.log(jsonData)
-            if (Object.keys(data).length != 0) {
+            
+            if (data&&Object.keys(data).length != 0) {
                 showResult(data);
             }
 
@@ -68,15 +69,13 @@
                 return;
             }
 
-            try {
+           
                 data = await parseFile(file);
                 console.log(data)
                 data = JSON.parse(data)
                 await saveJsonData(data);
                 showResult(data);
-            } catch (e) {
-                console.log(`Failed to convert file: ${e.message}`);
-            }
+           
         });
 
         // 保存更改
