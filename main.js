@@ -1,13 +1,19 @@
-
+import axios from "./node_modules/axios/dist/esm/axios.min.js"
 // 解析函数
+// 导出函数 parseQuestionsToJson，用于将输入的题目字符串解析为 JSON 格式
 export function parseQuestionsToJson(input) {
-   
+    // 打印 axios 对象，用于调试
+    console.log(axios)
+     
+    // 打印输入的题目字符串，用于调试
+   console.log(input)
+    // 使用正则表达式分割输入字符串，按 "答案：" 分割为题目和答案两部分
     let strArr = input.split(/\n*答案：\n*/)
    
     // 清理输入，去除多余空行和空格
     const lines = strArr[0].trim().split('\n').map(line => line.trim()).filter(line => line);
-    console.log(strArr[0].trim())
-    // 初始化结果
+    // console.log(strArr[0].trim())
+    // 初始化结果对象
     const result = {}
 
     // 状态标记：当前解析的题目类型
@@ -16,7 +22,7 @@ export function parseQuestionsToJson(input) {
     let currentOptions = '';
 
     let title;
-    let titleReg = /\*\*([^\*]+)\*\*\s*\*\*([^\*]+)\*\*/
+    let titleReg = /[*]*([^*]+)[*]*/g
     for (let i = 0; i < lines.length; i++) {
 
         const line = lines[i];
@@ -48,8 +54,8 @@ export function parseQuestionsToJson(input) {
         }
         // 从输入字符串中提取标题
         if (titleReg.test(line)) {
-            const titleMatch = line.match(titleReg);
-            title = titleMatch ? titleMatch[1] + titleMatch[2] : '默认标题'; // 合并为 "导论"
+            const titleMatch = [...line.matchAll(titleReg)];
+            title = titleMatch ? titleMatch.map(item => item[1]).join('') : '默认标题'; // 合并为 "导论"
             result[title] = {
                 "单选": [],
                 "多选": []
@@ -73,6 +79,7 @@ export function parseQuestionsToJson(input) {
         currentQuestion = null
     }
     insertAnswer(strArr[1],result)
+    console.log( JSON.stringify(result, null, 2))
     return JSON.stringify(result, null, 2);
 }
 

@@ -39,6 +39,7 @@
     <script type="module">
         import { marked } from './node_modules/marked/lib/marked.esm.js';
         import { parseQuestionsToJson } from "./main.js"
+        import { main } from "./test.js"
         const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
         let data = {}
@@ -47,8 +48,8 @@
 
             data = await getJsonData();
             // console.log(jsonData)
-            
-            if (data&&Object.keys(data).length != 0) {
+
+            if (data && Object.keys(data).length != 0) {
                 showResult(data);
             }
 
@@ -69,13 +70,17 @@
                 return;
             }
 
+
+            data = await parseFile(file);
+
            
-                data = await parseFile(file);
-                console.log(data)
-                data = JSON.parse(data)
-                await saveJsonData(data);
-                showResult(data);
-           
+            console.log(111)
+            // console.log(data)
+            data = JSON.parse(data)
+            await saveJsonData(data);
+            showResult(data);
+
+
         });
 
         // 保存更改
@@ -110,16 +115,16 @@
                 let value = data[chapter]
                 Object.keys(value).forEach(item => {
                     if (data[chapter][item].length > 0) {
-                       
+
                         data[chapter][item].forEach((q, idx) => {
-                            if(q.userAnswer){
+                            if (q.userAnswer) {
                                 q.userAnswer = ""
                                 q.chooseRight = undefined
-                                
+
                             }
-                           
+
                         })
-                        
+
                     }
 
                 })
@@ -147,22 +152,23 @@
 
                 return parseMarkdown(text);
             } else if (extension === 'docx' || extension === 'doc') {
-                const result = await mammoth.extractRawText({ arrayBuffer });
-                console.log(result.value)
-                return parseDocx(result.value);
+                // const result = await mammoth.extractRawText({ arrayBuffer });
+                window.alert("暂不支持除md文件以外的文件!😝")
+                // return parseDocx(result.value);
             } else {
-                throw new Error('Unsupported file format.');
+                window.alert("暂不支持除md文件以外的文件!😝")
             }
         }
 
         // 解析 Markdown
         function parseMarkdown(text) {
-            return parseQuestionsToJson(text)
+            return main(text)
 
         }
 
         // 解析 Docx
         function parseDocx(text) {
+            console.log(text)
             return text
                 .split('\n')
                 .filter(line => line.trim())
