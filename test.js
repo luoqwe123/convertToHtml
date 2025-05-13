@@ -18,7 +18,7 @@ function parseQuestionsToJson(input, format) {
     // 打印输入的题目字符串，用于调试
     // console.log(input)
     // 使用正则表达式分割输入字符串，按 "答案：" 分割为题目和答案两部分
-    let strArr = input.split(/\s+.*[答案]：|:\s+/)
+    let strArr = input.split(/\s+.*答案[：:]\s+/)
     // console.log("strArr",strArr[0],strArr[1],strArr[2])
     // 清理输入，去除多余空行和空格
     const lines = strArr[0].trim().split('\n').map(line => line.trim()).filter(line => {
@@ -74,13 +74,13 @@ function parseQuestionsToJson(input, format) {
         }
         // 从输入字符串中提取标题
         if (titleReg.test(line)) {
-            
+
             let titleMatch
             if (titleStyle === "blod") {
                 titleMatch = line.split(/[*]+/).filter(value => value).filter(value => !(/\n+/.test(value)))
             } else {
                 titleMatch = line.split(/[#]+/).filter(value => value).filter(value => !(/\n+/.test(value)))
-                
+
             }
             title = titleMatch ? titleMatch.join('') : '默认标题'; // 合并为 "导论"
             title = title.replaceAll(/\s/g, "")
@@ -185,13 +185,14 @@ function insertAnswer(str, result, titleStyle) {
     let answerType = ''
     let questionNumber = 1 // 题号
     let title = ''
-    // console.log(str)
+    console.log(JSON.stringify(result))
+
 
     // const lines = str.trim().split("**").map(line => line.trim()).filter(line => line).filter(line => !(/^\d/.test(line)))
     const lines = str.trim().split('\n').map(line => line.trim()).filter(line => line)
     // let titleReg = /\*\*([^\*]+)\*\*/
     lines.forEach((item, index) => {
-
+        console.log("item",item)
         if (/(单选|多选)/.test(item)) {
 
             questionNumber = 1 // 换题型重新计算题号
@@ -212,6 +213,7 @@ function insertAnswer(str, result, titleStyle) {
                 }
                 answerArr = newArr
             }
+            console.log(answerType)
             answerArr.forEach((value, index) => {
                 res[title][answerType][questionNumber] = value
                 questionNumber++
@@ -270,7 +272,7 @@ function insertAnswer1(str, result, title) {
         "多选": {}
     }
     lines.forEach((item, index) => {
-
+         console.log("item,",item)
         if (/(单选|多选)/.test(item)) {
 
             questionNumber = 1 // 换题型重新计算题号
@@ -282,6 +284,7 @@ function insertAnswer1(str, result, title) {
             }
         } else if (/.*[A-Z]+/.test(item)) {
             const frontAnswerReg = /[a-zA-Z]+/g
+           
             let answerArr = [...item.matchAll(frontAnswerReg)].map(item => item[0])
 
             if (answerType === "单选") {
@@ -292,14 +295,14 @@ function insertAnswer1(str, result, title) {
                 answerArr = newArr
             }
             answerArr.forEach((value, index) => {
-                
+
                 res[title][answerType][questionNumber] = value
                 questionNumber++
             })
 
         }
     })
-    
+
     for (const key1 in res) {
         for (const key2 in result) {
             if (key2.includes(key1)) {
@@ -318,11 +321,12 @@ function insertAnswer1(str, result, title) {
     return JSON.stringify(result, null, 2)
 }
 
+
 export function main(str) {
     let res = {};
-    const changeStr = str.split(/\s+.*[答案]：|:\s+/g) //  后期改为标题
-   
-   
+    const changeStr = str.split(/\s+.*答案+[：:]\s+/g) //  后期改为标题
+
+    
     if (changeStr.length <= 2) {
         res = parseQuestionsToJson(str, "one")
     } else {
@@ -339,8 +343,8 @@ export function main(str) {
         }
         // paresquestion2(newStr)
     }
-    
+
     return JSON.stringify(res, null, 2);
 }
-
+// main(str)
 // console.log(res)
