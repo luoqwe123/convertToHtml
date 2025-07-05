@@ -113,6 +113,118 @@ body {
     cursor: not-allowed;
 }
 
+/* 转换按钮样式 */
+.main #convertButtonRecent1 {
+    background-color: #4ae26d;
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 500;
+    vertical-align: center;
+    min-width: 78px;
+    min-height: 45px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    width: 20%;
+    height: 25%;
+}
+
+/* 按钮悬停和点击效果 */
+.main #convertButtonRecent1:hover {
+    background-color: #35bd92;
+    transform: translateY(-1px);
+}
+
+.main #convertButtonRecent1:active {
+    transform: translateY(0);
+}
+
+/* 禁用按钮样式 */
+.main #convertButton:disabled {
+    background-color: #35bd92;
+    cursor: not-allowed;
+}
+
+/* 转换按钮样式 */
+.main #convertButtonRecent2 {
+    background-color: #4ae26d;
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 500;
+    vertical-align: center;
+    min-width: 78px;
+    min-height: 45px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    width: 20%;
+    height: 25%;
+}
+
+/* 按钮悬停和点击效果 */
+.main #convertButtonRecent2:hover {
+    background-color: #35bd92;
+    transform: translateY(-1px);
+}
+
+.main #convertButtonRecent2:active {
+    transform: translateY(0);
+}
+
+
+/* 转换按钮样式 */
+.main #convertButtonRecent3 {
+    background-color: #4ae26d;
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 500;
+    vertical-align: center;
+    min-width: 78px;
+    min-height: 45px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    width: 20%;
+    height: 25%;
+}
+
+/* 按钮悬停和点击效果 */
+.main #convertButtonRecent3:hover {
+    background-color: #35bd92;
+    transform: translateY(-1px);
+}
+
+.main #convertButtonRecent3:active {
+    transform: translateY(0);
+}
+
+/* 禁用按钮样式 */
+.main #convertButton:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
+/* 禁用按钮样式 */
+.main #convertButtonRecent1:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
+/* 禁用按钮样式 */
+.main #convertButtonRecent2:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
+/* 禁用按钮样式 */
+.main #convertButtonRecent3:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
 /* 结果区域样式 */
 /* #result {
     width: 56%;
