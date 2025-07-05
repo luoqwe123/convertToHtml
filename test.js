@@ -257,6 +257,10 @@ function insertAnswer(str, result, titleStyle) {
 }
 
 function insertAnswer1(str, result, title) {
+    // console.log("方法执行了");
+    // console.log("标题:",str);
+    // console.log("题目:",result);
+    // console.log("题目:",title);
     // 结果
     let res = {}
     let answerType = ''
