@@ -185,14 +185,14 @@ function insertAnswer(str, result, titleStyle) {
     let answerType = ''
     let questionNumber = 1 // 题号
     let title = ''
-    console.log(JSON.stringify(result))
+    // console.log(JSON.stringify(result))
 
 
     // const lines = str.trim().split("**").map(line => line.trim()).filter(line => line).filter(line => !(/^\d/.test(line)))
     const lines = str.trim().split('\n').map(line => line.trim()).filter(line => line)
     // let titleReg = /\*\*([^\*]+)\*\*/
     lines.forEach((item, index) => {
-        console.log("item",item)
+        // console.log("item",item)
         if (/(单选|多选)/.test(item)) {
 
             questionNumber = 1 // 换题型重新计算题号
@@ -257,6 +257,10 @@ function insertAnswer(str, result, titleStyle) {
 }
 
 function insertAnswer1(str, result, title) {
+    // console.log("方法执行了");
+    // console.log("标题:",str);
+    // console.log("题目:",result);
+    // console.log("题目:",title);
     // 结果
     let res = {}
     let answerType = ''

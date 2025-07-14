@@ -10,83 +10,110 @@
 </head>
 
 <body>
-    <div class="app">
-        <div class="main">
-            <div class="box">
-                <h1>Upload a Document</h1>
-                <input type="file" id="fileInput" accept=".md" required>
-                <button type="button" id="convertButton">Convert</button>
-            </div>
-        </div>
-        <div class="container">
-            <div class="resultMain">
-                <div class="result"></div>
-                <div class="sidebar">
-                    <h3>题目导航</h3>
-                    <ul class="question-list"></ul>
-                </div>
-            </div>
-            <div class="floor">
-                <button type="button" class="resetButton">清空历史记录</button>
-                <button type="button" class="saveButton">保存做题记录</button>
-            </div>
+<div class="app">
+    <div class="main">
+        <div class="box">
+            <h1>Upload a Document</h1>
+            <input type="file" id="fileInput" accept=".md" required>
+            <button type="button" id="convertButton">Convert</button>
         </div>
     </div>
+    <div class="container">
+        <div class="resultMain">
+            <div class="result"></div>
+            <div class="sidebar">
+                <h3>题目导航</h3>
+                <ul class="question-list"></ul>
+            </div>
+        </div>
+        <div class="floor">
+            <button type="button" class="resetButton">清空历史记录</button>
+            <button type="button" class="saveButton">保存做题记录</button>
+        </div>
+    </div>
+    
+</div>
 
-    <!-- CDN 引入解析库 -->
-    <script src="./node_modules/mammoth/mammoth.browser.js"></script>
-    <script src="./indexDB.js"></script>
-    <script type="module">
-        import { marked } from './node_modules/marked/lib/marked.esm.js';
-        import { parseQuestionsToJson } from "./main.js"
-        import { main } from "./test.js"
-        const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+<!-- CDN 引入解析库 -->
+<script src="./node_modules/mammoth/mammoth.browser.js"></script>
+<script src="./indexDB.js"></script>
+<script type="module">
+    import {marked} from './node_modules/marked/lib/marked.esm.js';
+    import {parseQuestionsToJson} from "./main.js"
+    import {main} from "./test.js"
 
-        let data = {}
-        // 页面加载时检查 IndexedDB
-        document.addEventListener('DOMContentLoaded', async () => {
+    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
-            data = await getJsonData();
-            // console.log(jsonData)
+    let data = {}
+    // 页面加载时检查 IndexedDB
+    document.addEventListener('DOMContentLoaded', async () => {
 
-            if (data && Object.keys(data).length != 0) {
-                showResult(data);
-            }
+        data = await getJsonData();
+        // console.log(jsonData)
 
-        });
-
-        // 转换按钮事件
-        document.getElementById('convertButton').addEventListener('click', async () => {
-            const fileInput = document.getElementById('fileInput');
-            const file = fileInput.files[0];
-
-            if (!file) {
-                console.log('Please select a file.');
-                return;
-            }
-
-            if (file.size > MAX_FILE_SIZE) {
-                console.log('File size exceeds 5MB.');
-                return;
-            }
-
-
-            data = await parseFile(file);
-
-           
-            // console.log(111)
-            // console.log(data)
-            data = JSON.parse(data)
-            await saveJsonData(data);
+        if (data && Object.keys(data).length != 0) {
             showResult(data);
+        }
+
+    });
+
+    // 转换按钮事件 通用
+    document.getElementById('convertButton').addEventListener('click', async () => {
+        const fileInput = document.getElementById('fileInput');
+        const file = fileInput.files[0];
+
+        if (!file) {
+            console.log('Please select a file.');
+            return;
+        }
+
+        if (file.size > MAX_FILE_SIZE) {
+            console.log('File size exceeds 5MB.');
+            return;
+        }
 
 
-        });
+        data = await parseFile(file);
 
-        // 保存更改
-        document.querySelector('.saveButton').addEventListener('click', async () => {
+        // console.log(111)
+        // console.log(data)
+        data = JSON.parse(data)
+        await saveJsonData(data);
+        showResult(data);
+        // } catch (error) {
+        //     console.error('Error processing file:', error);
+        //     alert(`Error: ${error.message}`);
+        // }
+    })
 
-            try {
+    // 从路径获取文件并处理
+    async function processFileFromPath(filePath, fileName) {
+        try {
+            const response = await fetch(filePath);
+            if (!response.ok) {
+                throw new Error(`Failed to fetch file: ${response.status}`);
+            }
+
+            // 获取ArrayBuffer
+            const arrayBuffer = await response.arrayBuffer();
+
+            // 创建完整的模拟文件对象
+            const mockFile = new File([arrayBuffer], fileName, {
+                type: 'text/markdown',
+                lastModified: Date.now()
+            });
+
+            await processFile(mockFile);
+        } catch (error) {
+            console.error('Error fetching file:', error);
+            alert(`Error: ${error.message}`);
+        }
+    }
+
+    // 保存更改
+    document.querySelector('.saveButton').addEventListener('click', async () => {
+
+        try {
 
                 await saveJsonData(data);
                 alert("保存成功")
@@ -96,37 +123,37 @@
             }
         });
 
-        // 添加备注
-        // document.getElementById('addNoteButton').addEventListener('click', () => {
-        //     const textarea = document.getElementById('jsonData');
-        //     try {
-        //         const json = JSON.parse(textarea.value);
-        //         json.push({ type: 'note', content: 'User added note at ' + new Date().toLocaleString() });
-        //         textarea.value = JSON.stringify(json, null, 2);
-        //         showMessage('Note added.');
-        //     } catch (e) {
-        //         showError('Failed to add note.');
-        //     }
-        // });
+    // 添加备注
+    // document.getElementById('addNoteButton').addEventListener('click', () => {
+    //     const textarea = document.getElementById('jsonData');
+    //     try {
+    //         const json = JSON.parse(textarea.value);
+    //         json.push({ type: 'note', content: 'User added note at ' + new Date().toLocaleString() });
+    //         textarea.value = JSON.stringify(json, null, 2);
+    //         showMessage('Note added.');
+    //     } catch (e) {
+    //         showError('Failed to add note.');
+    //     }
+    // });
 
-        // 重置数据
-        document.querySelector('.resetButton').addEventListener('click', async () => {
-            // console.log(data)
-            Object.keys(data).forEach(chapter => {
-                let value = data[chapter]
-                Object.keys(value).forEach(item => {
-                    if (data[chapter][item].length > 0) {
+    // 重置数据
+    document.querySelector('.resetButton').addEventListener('click', async () => {
+        // console.log(data)
+        Object.keys(data).forEach(chapter => {
+            let value = data[chapter]
+            Object.keys(value).forEach(item => {
+                if (data[chapter][item].length > 0) {
 
-                        data[chapter][item].forEach((q, idx) => {
-                            if (q.userAnswer) {
-                                q.userAnswer = ""
-                                q.chooseRight = undefined
+                    data[chapter][item].forEach((q, idx) => {
+                        if (q.userAnswer) {
+                            q.userAnswer = ""
+                            q.chooseRight = undefined
 
-                            }
+                        }
 
-                        })
+                    })
 
-                    }
+                }
 
                 })
             });
@@ -143,68 +170,68 @@
             // }
         });
 
-        // 解析文件
-        async function parseFile(file) {
+    // 解析文件
+    async function parseFile(file) {
 
-            const extension = file.name.split('.').pop().toLowerCase();
-            const arrayBuffer = await file.arrayBuffer();
+        const extension = file.name.split('.').pop().toLowerCase();
+        const arrayBuffer = await file.arrayBuffer();
 
-            if (extension === 'md') {
-                const text = new TextDecoder().decode(arrayBuffer);
+        if (extension === 'md') {
+            const text = new TextDecoder().decode(arrayBuffer);
 
-                return parseMarkdown(text);
-            } else if (extension === 'docx' || extension === 'doc') {
-                // const result = await mammoth.extractRawText({ arrayBuffer });
-                window.alert("暂不支持除md文件以外的文件!😝")
-                // return parseDocx(result.value);
-            } else {
-                window.alert("暂不支持除md文件以外的文件!😝")
-            }
+            return parseMarkdown(text);
+        } else if (extension === 'docx' || extension === 'doc') {
+            // const result = await mammoth.extractRawText({ arrayBuffer });
+            window.alert("暂不支持除md文件以外的文件!😝")
+            // return parseDocx(result.value);
+        } else {
+            window.alert("暂不支持除md文件以外的文件!😝")
         }
+    }
 
-        // 解析 Markdown
-        function parseMarkdown(text) {
-            return main(text)
+    // 解析 Markdown
+    function parseMarkdown(text) {
+        return main(text)
 
-        }
+    }
 
-        // 解析 Docx
-        function parseDocx(text) {
-            console.log(text)
-            return text
-                .split('\n')
-                .filter(line => line.trim())
-                .map(line => ({
-                    type: 'paragraph',
-                    content: line.trim()
-                }));
-        }
+    // 解析 Docx
+    function parseDocx(text) {
+        console.log(text)
+        return text
+            .split('\n')
+            .filter(line => line.trim())
+            .map(line => ({
+                type: 'paragraph',
+                content: line.trim()
+            }));
+    }
 
-        // 显示结果
-        // function showResult(json) {
-        //     const resultDiv = document.getElementById('result');
-        //     const textarea = document.getElementById('jsonData');
-        //     console.log(JSON.parse(json))
-        //     textarea.value = JSON.parse(json);
-        //     resultDiv.style.display = 'block';
-        //     console.log('File converted successfully.');
-        // }
+    // 显示结果
+    // function showResult(json) {
+    //     const resultDiv = document.getElementById('result');
+    //     const textarea = document.getElementById('jsonData');
+    //     console.log(JSON.parse(json))
+    //     textarea.value = JSON.parse(json);
+    //     resultDiv.style.display = 'block';
+    //     console.log('File converted successfully.');
+    // }
 
-        // // 显示错误
-        // function showError(message) {
-        //     const messageP = document.getElementById('resultMessage');
-        //     messageP.textContent = message;
-        //     messageP.className = 'error';
-        // }
+    // // 显示错误
+    // function showError(message) {
+    //     const messageP = document.getElementById('resultMessage');
+    //     messageP.textContent = message;
+    //     messageP.className = 'error';
+    // }
 
-        // // 显示消息
-        // function showMessage(message) {
-        //     const messageP = document.getElementById('resultMessage');
-        //     messageP.textContent = message;
-        //     messageP.className = '';
-        // }
-    </script>
-    <script src="./index.js"></script>
+    // // 显示消息
+    // function showMessage(message) {
+    //     const messageP = document.getElementById('resultMessage');
+    //     messageP.textContent = message;
+    //     messageP.className = '';
+    // }
+</script>
+<script src="./index.js"></script>
 </body>
 
 </html>
