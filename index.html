@@ -74,8 +74,8 @@
             data = await parseFile(file);
 
            
-            console.log(111)
-            console.log(data)
+            // console.log(111)
+            // console.log(data)
             data = JSON.parse(data)
             await saveJsonData(data);
             showResult(data);
@@ -89,6 +89,7 @@
             try {
 
                 await saveJsonData(data);
+                alert("保存成功")
                 console.log('Changes saved successfully.');
             } catch (e) {
                 console.log('Invalid JSON format.');
@@ -130,6 +131,7 @@
                 })
             });
             await saveJsonData(data)
+            alert("清空成功")
             // console.log(data)
             // try {
             //     await deleteJsonData();

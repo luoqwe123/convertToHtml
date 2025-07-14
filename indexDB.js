@@ -1,5 +1,6 @@
 
 
+
 const DB_NAME = 'DocumentConverterDB';
 const STORE_NAME = 'jsonStore';
 const RECORD_ID = 'convertedJson';
@@ -49,6 +50,7 @@ async function saveJsonData(data) {
         return new Promise((resolve, reject) => {
             const transaction = db.transaction([STORE_NAME], 'readwrite');
             const store = transaction.objectStore(STORE_NAME);
+            
             const request = store.put({ id: RECORD_ID, data });
 
             request.onsuccess = () => resolve();
